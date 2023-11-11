@@ -6,7 +6,7 @@
 using namespace std;
 
 int INF = 100000000;
-int LIM = 50; // Revisar: con 50 tira wrong answer, con 100 time limit
+int MAX_CAP;
 int N, M, x;
 vector<tuple<int, int, int>> edges; // source, destiny, weight
 vector<vector<int>> capacity;
@@ -41,7 +41,7 @@ int bfs(int s, int t, vector<int>& parent) {
 
 int maxflow(int s, int t) {
     int flow = 0;
-    vector<int> parent(N);
+    vector<int> parent(N + 2);
     int new_flow;
 
     while ((new_flow = bfs(s, t, parent))) {
@@ -66,21 +66,22 @@ int solve() {
     
     Si divido a la capacidad de c/ arista por K obtengo la cantidad de personas que
     pueden recorrer esa arista. 
-    Si se crea un grafo con los mismos nodos y aristas pero con capacidades = capacidad(e) / K, 
-    el valor del flujo máximo es = a las personas totales que pueden llevar K elementos.
-    Si este valor coincide con x, entonces K es una solución probable (puede no ser la óptima).
+    Si se crea un grafo con los mismos nodos y aristas pero con capacidades = cap(e) / K, 
+    el valor del flujo máximo es igual a las personas totales que pueden llevar K elementos.
+    Si este valor coincide con x, entonces K es una solución probable (en este caso es la óptima).
 
     IDEA:
     Aproximar el valor de K con búsqueda binaria, hasta un epsilon pequeño.
 
     Probar un valor K', crear el grafo con capacidades cap(e) / K' y ejecutar flujo max.
-    Si el flujo el >= x, entonces hago b.b. en la parte alta
-    Sino, en la baja.
-    Cortar la búsqueda en cierto límite que pueda asegurar un resultado óptimo.
+    Agregar tambien un nodo s y uno t con capacidades = x para que flujo max <= x.
+    Si el flujo el >= x, entonces hago b.b. en la parte alta, para buscar un mayor K'
+    Sino, en la baja, ya que significa que K' es muy grande.
+    Cortar la búsqueda hasta cierto límite que pueda asegurar un resultado óptimo.
     */
 
-    int mid, low = 0, high = 1000000, res = 0;
-    int lim = LIM;
+    int mid, low = 0, high = MAX_CAP + 1, res = 0;
+    int lim = 25; // lim >= log2(high) y high <= 10^6
     while (lim > 0) {
         lim--;
         mid = (low + high) / 2;
@@ -95,8 +96,11 @@ int solve() {
                 capacity[v][w] = 0;
             }
         }
-        
-        int flow = maxflow(0, N-1);
+        // Capacidad de nodos s y t = x
+        capacity[0][1] = x;
+        capacity[N][N+1] = x;
+
+        int flow = maxflow(0, N + 1);
         if (flow >= x) {
             low = mid;
             res = mid;
@@ -117,17 +121,24 @@ int main() {
         cin >> N >> M >> x;
 
         // Inicializar estructuras
-        adj = vector<vector<int>>(N, vector<int>());
+        adj = vector<vector<int>>(N + 2, vector<int>());
         edges = vector<tuple<int, int, int>>(M);
-        capacity = vector<vector<int>>(N, vector<int>(N, 0));
+        capacity = vector<vector<int>>(N + 2, vector<int>(N + 2, 0));
+        MAX_CAP = 0; // Guardo la capacidad máxima para acotar high en la b.b.
         
+        // Agrego dos nodos s y t
+        adj[0].push_back(1);
+        adj[1].push_back(0);
+        adj[N].push_back(N+1);
+        adj[N+1].push_back(N);
         for (int i = 0; i < M; i++) {
             int v, w, c;
             cin >> v >> w >> c;
-            v--; w--;
+            // v--; w--;
             adj[v].push_back(w);
             adj[w].push_back(v);
             edges[i] = {v, w, c};
+            MAX_CAP = max(MAX_CAP, c);
         }
         
         int res = solve();
