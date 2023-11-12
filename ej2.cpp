@@ -101,8 +101,7 @@ void solve() {
     bool impossible = false;
     
     for (int i = 0; i < N && impossible == false; i++) {
-        int len = adj[i].size();
-        for (int j = i; j < len; j++) {
+        for (int j = 0; adj[i][j] < i; j++) {
             int v = i, w = adj[i][j];
 
             remove_edge(v, w);
